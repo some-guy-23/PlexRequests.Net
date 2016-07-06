@@ -84,7 +84,13 @@ namespace PlexRequests.Services.Jobs
 
         public void Execute(IJobExecutionContext context)
         {
+            try { 
             Cleanup();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
         }
     }
 }

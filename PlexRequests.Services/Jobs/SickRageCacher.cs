@@ -24,6 +24,7 @@
 //    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //  ************************************************************************/
 #endregion
+using System;
 using System.Linq;
 
 using NLog;
@@ -92,7 +93,14 @@ namespace PlexRequests.Services.Jobs
 
         public void Execute(IJobExecutionContext context)
         {
-            Queued();
+            try
+            {
+                Queued();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
         }
     }
 }

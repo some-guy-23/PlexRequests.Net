@@ -53,8 +53,15 @@ namespace PlexRequests.Services.Jobs
 
         public void Execute(IJobExecutionContext context)
         {
-            TakeBackup();
-            Cleanup();
+            try
+            {
+                TakeBackup();
+                Cleanup();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
         }
 
         private void TakeBackup()

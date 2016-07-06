@@ -74,7 +74,7 @@ namespace PlexRequests.Services.Jobs
                         Cache.Set(CacheKeys.CouchPotatoQueued, movies, CacheKeys.TimeFrameMinutes.SchedulerCaching);
                     }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Log.Error(ex, "Failed caching queued items from CouchPotato");
                 }
@@ -98,13 +98,20 @@ namespace PlexRequests.Services.Jobs
             catch (Exception e)
             {
                 Log.Error(e);
-                return new int[] {};
+                return new int[] { };
             }
         }
 
         public void Execute(IJobExecutionContext context)
         {
-            Queued();
+            try
+            {
+                Queued();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
         }
     }
 }
