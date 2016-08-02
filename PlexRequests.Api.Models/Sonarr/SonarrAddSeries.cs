@@ -24,9 +24,14 @@ namespace PlexRequests.Api.Models.Sonarr
 
     public class SonarrAddSeries
     {
+        public SonarrAddSeries()
+        {
+            images = new List<string>();
+        }
         public AddOptions addOptions { get; set; }
         public string title { get; set; }
         public List<Season> seasons { get; set; }
+        public List<string> images { get; set; }
         public string rootFolderPath { get; set; }
         public int qualityProfileId { get; set; }
         public bool seasonFolder { get; set; }
