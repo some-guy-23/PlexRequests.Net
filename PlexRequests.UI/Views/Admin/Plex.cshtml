@@ -63,6 +63,22 @@
             </div>
 
             <div class="form-group">
+                <div class="checkbox">
+
+                    @if (Model.ShareLabelRestrictions)
+                    {
+                        <input type="checkbox" id="ShareLabelRestrictions" name="ShareLabelRestrictions" checked="checked"><label for="ShareLabelRestrictions">Share Label Restrictions</label>
+                    }
+                    else
+                    {
+                        <input type="checkbox" id="ShareLabelRestrictions" name="ShareLabelRestrictions"><label for="ShareLabelRestrictions">Share Label Restrictions</label>
+                    }
+
+                </div>
+                <small>Enables content restriction based on Share Labels (Requires Plex Pass)</small>
+            </div>
+
+            <div class="form-group">
                 <label for="SubDir" class="control-label">Plex Base Url</label>
                 <div>
                     <input type="text" class="form-control form-control-custom " id="SubDir" name="SubDir" value="@Model.SubDir">

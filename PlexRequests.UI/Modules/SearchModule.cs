@@ -342,9 +342,16 @@ namespace PlexRequests.UI.Modules
                     providerId = viewT.Id.ToString();
                 }
 
-                if (Checker.IsTvShowAvailable(plexTvShows.ToArray(), t.show.name, t.show.premiered?.Substring(0, 4), providerId))
+                var showExists = Checker.IsTvShowAvailable(plexTvShows.ToArray(), t.show.name, t.show.premiered?.Substring(0, 4), providerId);
+                var showShared = !plexSettings.ShareLabelRestrictions || Checker.IsTvShowShared(plexTvShows.ToArray(), providerId, Username);
+
+                if(showExists && showShared)
                 {
                     viewT.Available = true;
+                }
+                else if (showExists && !showShared)
+                {
+                    //  TODO - assign share label to this show (or maybe wait for approval?)
                 }
                 else if (t.show?.externals?.thetvdb != null)
                 {

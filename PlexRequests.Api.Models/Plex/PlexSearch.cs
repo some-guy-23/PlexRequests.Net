@@ -130,6 +130,15 @@ namespace PlexRequests.Api.Models.Plex
         public string Tag { get; set; }
     }
 
+    [XmlRoot(ElementName = "Label")]
+    public class Label
+    {
+        [XmlAttribute(AttributeName = "id")]
+        public int ID { get; set; }
+        [XmlAttribute(AttributeName = "tag")]
+        public string Tag { get; set; }
+    }
+
     [XmlRoot(ElementName = "Video")]
     public class Video
     {
@@ -251,6 +260,8 @@ namespace PlexRequests.Api.Models.Plex
         public List<Genre> Genre { get; set; }
         [XmlElement(ElementName = "Role")]
         public List<Role> Role { get; set; }
+        [XmlElement(ElementName = "Label")]
+        public List<Label> Label { get; set; }
         [XmlAttribute(AttributeName = "allowSync")]
         public string AllowSync { get; set; }
         [XmlAttribute(AttributeName = "librarySectionID")]

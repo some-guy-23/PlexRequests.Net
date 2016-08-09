@@ -208,13 +208,14 @@ namespace PlexRequests.Services.Jobs
                         )
                     ).ToArray();
 
-                foreach (var lib in tvLibs)
+              foreach (var lib in tvLibs)
                 {
                     shows.AddRange(lib.Directory.Select(x => new PlexTvShow // shows are in the directory list
                     {
                         Title = x.Title,
                         ReleaseYear = x.Year,
                         ProviderId = x.ProviderId,
+                        ShareLabels = x.Label.Select(y => y.Tag).ToList<string>()
                     }));
                 }
             }
@@ -240,6 +241,23 @@ namespace PlexRequests.Services.Jobs
                     return true;
                 }
             }
+            return false;
+        }
+
+        public bool IsTvShowShared(PlexTvShow[] plexShows, string providerId, string username)
+        {
+            //  TODO: Get mapped plex share label for username
+            var plexShareLabel = "Test"; //plexShareLabels["username"]
+            foreach (var show in plexShows)
+            {
+                if (!string.IsNullOrEmpty(show.ProviderId) &&
+                        show.ProviderId.Equals(providerId, StringComparison.InvariantCultureIgnoreCase) &&
+                        show.ShareLabels.FirstOrDefault(stringToCheck => stringToCheck.Contains(plexShareLabel)) !=null)
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
 
@@ -368,6 +386,7 @@ namespace PlexRequests.Services.Jobs
                                     currentItem.RatingKey);
                                 var providerId = PlexHelper.GetProviderIdFromPlexGuid(metaData.Directory.Guid);
                                 results[i].Directory[j].ProviderId = providerId;
+                                results[i].Directory[j].Label = metaData.Directory.Label;
                             }
                             for (var j = 0; j < results[i].Video.Count; j++)
                             {

@@ -31,5 +31,7 @@ namespace PlexRequests.Core.SettingModels
         public bool AdvancedSearch { get; set; }
 
         public string PlexAuthToken { get; set; }
+
+        public bool ShareLabelRestrictions { get; set; }
     }
 }
