@@ -343,7 +343,7 @@ namespace PlexRequests.UI.Modules
                 }
 
                 var showExists = Checker.IsTvShowAvailable(plexTvShows.ToArray(), t.show.name, t.show.premiered?.Substring(0, 4), providerId);
-                var showShared = !plexSettings.ShareLabelRestrictions || Checker.IsTvShowShared(plexTvShows.ToArray(), providerId, Username);
+                var showShared = !plexSettings.ShareLabelRestrictions || Checker.IsTvShowShared(plexTvShows.ToArray(), providerId, new List<string>() { Username });
 
                 if(showExists && showShared)
                 {
@@ -351,7 +351,7 @@ namespace PlexRequests.UI.Modules
                 }
                 else if (showExists && !showShared)
                 {
-                    //  TODO - assign share label to this show (or maybe wait for approval?)
+                    //  TODO - show some indicator in UI that it exists, but is not shared?
                 }
                 else if (t.show?.externals?.thetvdb != null)
                 {
@@ -540,6 +540,7 @@ namespace PlexRequests.UI.Modules
                 episodeModel = JsonConvert.DeserializeObject<EpisodeRequestModel>(json); // Convert it into the object
             }
             var episodeRequest = false;
+            var waitingForPlexShare = false;
 
             var settings = await PrService.GetSettingsAsync();
             if (!await CheckRequestLimit(settings, RequestType.TvShow))
@@ -610,6 +611,9 @@ namespace PlexRequests.UI.Modules
                 {
                     providerId = showId.ToString();
                 }
+                var sharedInPlex = !plexSettings.ShareLabelRestrictions || Checker.IsTvShowShared(shows.ToArray(), providerId, new List<string>() { Username });
+
+
                 if (episodeRequest)
                 {
                     var cachedEpisodesTask = await Checker.GetEpisodes();
@@ -618,7 +622,14 @@ namespace PlexRequests.UI.Modules
                     {
                         if (cachedEpisodes.Any(x => x.SeasonNumber == d.SeasonNumber && x.EpisodeNumber == d.EpisodeNumber && x.ProviderId == providerId))
                         {
-                            return Response.AsJson(new JsonResponseModel { Result = false, Message = $"{fullShowName}  {d.SeasonNumber} - {d.EpisodeNumber} {Resources.UI.Search_AlreadyInPlex}" });
+                            if (sharedInPlex)
+                            {
+                                return Response.AsJson(new JsonResponseModel { Result = false, Message = $"{fullShowName}  {d.SeasonNumber} - {d.EpisodeNumber} {Resources.UI.Search_AlreadyInPlex}" });
+                            }
+                            else
+                            {
+                                waitingForPlexShare = true;
+                            }
                         }
                     }
                 }
@@ -626,7 +637,14 @@ namespace PlexRequests.UI.Modules
                 {
                     if (Checker.IsTvShowAvailable(shows.ToArray(), showInfo.name, showInfo.premiered?.Substring(0, 4), providerId))
                     {
-                        return Response.AsJson(new JsonResponseModel { Result = false, Message = $"{fullShowName} {Resources.UI.Search_AlreadyInPlex}" });
+                        if (sharedInPlex)
+                        {
+                            return Response.AsJson(new JsonResponseModel { Result = false, Message = $"{fullShowName} {Resources.UI.Search_AlreadyInPlex}" });
+                        }
+                        else
+                        {
+                            waitingForPlexShare = true;
+                        }
                     }
                 }
             }
@@ -651,7 +669,8 @@ namespace PlexRequests.UI.Modules
                 Issues = IssueState.None,
                 ImdbId = showInfo.externals?.imdb ?? string.Empty,
                 SeasonCount = showInfo.seasonCount,
-                TvDbId = showId.ToString()
+                TvDbId = showId.ToString(),
+                WaitingForPlexShare = waitingForPlexShare
             };
 
 
@@ -693,7 +712,7 @@ namespace PlexRequests.UI.Modules
 
             model.SeasonList = seasonsList.ToArray();
 
-            if (ShouldAutoApprove(RequestType.TvShow, settings))
+            if (ShouldAutoApprove(RequestType.TvShow, settings) && !model.WaitingForPlexShare)
             {
                 model.Approved = true;
                 var s = await sonarrSettings;

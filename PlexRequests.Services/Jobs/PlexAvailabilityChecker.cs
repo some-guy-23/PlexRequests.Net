@@ -113,6 +113,7 @@ namespace PlexRequests.Services.Jobs
                 var releaseDate = r.ReleaseDate == DateTime.MinValue ? string.Empty : r.ReleaseDate.ToString("yyyy");
 
                 bool matchResult;
+                bool sharedOnPlex = false;
                 switch (r.Type)
                 {
                     case RequestType.Movie:
@@ -120,6 +121,10 @@ namespace PlexRequests.Services.Jobs
                         break;
                     case RequestType.TvShow:
                         matchResult = IsTvShowAvailable(shows, r.Title, releaseDate, r.TvDbId);
+                        if(matchResult && plexSettings.ShareLabelRestrictions)
+                        {
+                            sharedOnPlex = IsTvShowShared(shows, r.TvDbId, r.RequestedUsers);
+                        }
                         break;
                     case RequestType.Album:
                         matchResult = IsAlbumAvailable(albums, r.Title, r.ReleaseDate.Year.ToString(), r.ArtistName);
@@ -130,6 +135,11 @@ namespace PlexRequests.Services.Jobs
 
                 if (matchResult)
                 {
+                    if (plexSettings.ShareLabelRestrictions && !sharedOnPlex)
+                    {
+                        var shareLabelsAdded = PlexApi.AddShareLabels(r.TvDbId, PlexMediaType.Show, r.RequestedUsers, plexSettings.FullUri);
+                    }
+
                     r.Available = true;
                     modifiedModel.Add(r);
                     continue;
@@ -244,15 +254,15 @@ namespace PlexRequests.Services.Jobs
             return false;
         }
 
-        public bool IsTvShowShared(PlexTvShow[] plexShows, string providerId, string username)
+        public bool IsTvShowShared(PlexTvShow[] plexShows, string providerId, List<string> usernames)
         {
-            //  TODO: Get mapped plex share label for username
-            var plexShareLabel = "Test"; //plexShareLabels["username"]
+            //  TODO: Get mapped plex share label for usernames
+            List<string> plexShareLabels = new List<string>() { "Test" };
             foreach (var show in plexShows)
             {
                 if (!string.IsNullOrEmpty(show.ProviderId) &&
                         show.ProviderId.Equals(providerId, StringComparison.InvariantCultureIgnoreCase) &&
-                        show.ShareLabels.FirstOrDefault(stringToCheck => stringToCheck.Contains(plexShareLabel)) !=null)
+                        plexShareLabels.Intersect(show.ShareLabels).Count() == plexShareLabels.Count)
                 {
                     return true;
                 }

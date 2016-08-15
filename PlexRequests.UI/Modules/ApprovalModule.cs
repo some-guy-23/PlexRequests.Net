@@ -42,19 +42,22 @@ using PlexRequests.Helpers;
 using PlexRequests.Store;
 using PlexRequests.UI.Helpers;
 using PlexRequests.UI.Models;
+using PlexRequests.Services;
 
 namespace PlexRequests.UI.Modules
 {
     public class ApprovalModule : BaseAuthModule
     {
 
-        public ApprovalModule(IRequestService service, ISettingsService<CouchPotatoSettings> cpService, ICouchPotatoApi cpApi, ISonarrApi sonarrApi,
-            ISettingsService<SonarrSettings> sonarrSettings, ISickRageApi srApi, ISettingsService<SickRageSettings> srSettings,
+        public ApprovalModule(IRequestService service, ISettingsService<PlexSettings> plexSettings, IPlexApi plex, ISettingsService<CouchPotatoSettings> cpService, 
+            ICouchPotatoApi cpApi, ISonarrApi sonarrApi, ISettingsService<SonarrSettings> sonarrSettings, ISickRageApi srApi, ISettingsService<SickRageSettings> srSettings,
             ISettingsService<HeadphonesSettings> hpSettings, IHeadphonesApi hpApi, ISettingsService<PlexRequestSettings> pr) : base("approval", pr)
         {
             this.RequiresClaims(UserClaims.Admin);
 
             Service = service;
+            PlexApi = plex;
+            PlexSettings = plexSettings;
             CpService = cpService;
             CpApi = cpApi;
             SonarrApi = sonarrApi;
@@ -76,10 +79,12 @@ namespace PlexRequests.UI.Modules
         private IRequestService Service { get; }
 
         private static Logger Log = LogManager.GetCurrentClassLogger();
+        private ISettingsService<PlexSettings> PlexSettings { get; }
         private ISettingsService<SonarrSettings> SonarrSettings { get; }
         private ISettingsService<SickRageSettings> SickRageSettings { get; }
         private ISettingsService<CouchPotatoSettings> CpService { get; }
         private ISettingsService<HeadphonesSettings> HeadphonesSettings { get; }
+        private IPlexApi PlexApi { get; }
         private ISonarrApi SonarrApi { get; }
         private ISickRageApi SickRageApi { get; }
         private ICouchPotatoApi CpApi { get; }
@@ -118,6 +123,21 @@ namespace PlexRequests.UI.Modules
 
         private async Task<Response> RequestTvAndUpdateStatus(RequestedModel request, string qualityId)
         {
+            var plexSettings = await PlexSettings.GetSettingsAsync();
+
+            if (plexSettings.ShareLabelRestrictions && request.WaitingForPlexShare)
+            {
+                var requestResult = false;
+                var shareLabelsAdded = PlexApi.AddShareLabels(request.TvDbId, PlexMediaType.Show, request.RequestedUsers, plexSettings.FullUri);
+                if (shareLabelsAdded) {
+                    request.WaitingForPlexShare = false;
+                    request.Approved = true;
+                    requestResult = await Service.UpdateRequestAsync(request);
+                }
+                return Response.AsJson(requestResult ? new JsonResponseModel { Result = true, Message = "The request has been approved and shared on Plex" }
+                                                     : new JsonResponseModel { Result = false, Message = "Shared on Plex, but could not approve it in PlexRequests :(" });
+            } 
+
             var sender = new TvSender(SonarrApi, SickRageApi);
 
             var sonarrSettings = await SonarrSettings.GetSettingsAsync();
@@ -171,7 +191,6 @@ namespace PlexRequests.UI.Modules
                     Message = result?.message != null ? "<b>Message From SickRage: </b>" + result.message : "Could not add the series to SickRage"
                 });
             }
-
 
             request.Approved = true;
             var res = await Service.UpdateRequestAsync(request);
@@ -441,7 +460,24 @@ namespace PlexRequests.UI.Modules
                     var sender = new TvSender(SonarrApi, SickRageApi);
                     var sr = await SickRageSettings.GetSettingsAsync();
                     var sonarr = await SonarrSettings.GetSettingsAsync();
-                    if (sr.Enabled)
+
+                    var plexSettings = await PlexSettings.GetSettingsAsync();
+
+                    if (plexSettings.ShareLabelRestrictions && r.WaitingForPlexShare)
+                    {
+                        var shareLabelsAdded = PlexApi.AddShareLabels(r.TvDbId, PlexMediaType.Show, r.RequestedUsers, plexSettings.FullUri);
+                        if(shareLabelsAdded)
+                        {
+                            r.Approved = true;
+                            updatedRequests.Add(r);
+                        }
+                        else
+                        {
+                            Log.Error("Could not approve and share the TV {0} on Plex!", r.Title);
+                        }
+                    }
+
+                    else if (sr.Enabled)
                     {
                         var res = sender.SendToSickRage(sr, r);
                         if (res?.result == "success")

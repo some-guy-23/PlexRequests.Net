@@ -36,6 +36,8 @@ using PlexRequests.Api.Models.Plex;
 using PlexRequests.Helpers;
 
 using RestSharp;
+using PlexRequests.Services;
+using System.Collections.Generic;
 
 namespace PlexRequests.Api
 {
@@ -312,6 +314,17 @@ namespace PlexRequests.Api
             request.AddHeader("X-Plex-Product", "Plex Requests .Net");
             request.AddHeader("X-Plex-Version", Version);
             request.AddHeader("Content-Type", "application/xml");
+        }
+
+        public bool AddShareLabels(string providerID, PlexMediaType mediaType, List<string> shareLabels, Uri plexFullHost)
+        {
+            if(mediaType == PlexMediaType.Show)
+            {
+                //  TODO: Get catalog of libraries for this type, find show with providerID, add share labels
+                //  API Call for Share Labels - {{url}}/library/sections/{{libraryID}}/all?type={{type}}&id={{itemID}}&label[0].tag.tag={{shareLabel}}
+            }
+
+            return false;
         }
     }
 }

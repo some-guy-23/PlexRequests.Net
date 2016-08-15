@@ -26,6 +26,7 @@ namespace PlexRequests.Store
         public RequestType Type { get; set; }
         public string Status { get; set; }
         public bool Approved { get; set; }
+        public bool WaitingForPlexShare { get; set; }
 
         [Obsolete("Use RequestedUsers")]
         public string RequestedBy { get; set; }
